@@ -37,6 +37,11 @@ services:
       POSTGRES_PASSWORD: auth
     volumes:
       - auth-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth -d auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   orders-postgres:
     image: postgres:16-alpine
@@ -99,11 +104,15 @@ services:
       KAFKA_CONSUMER_GROUP_ID: auth-service-demo-group
       DEMO_TOPIC: auth.demo.event.v1
       DATABASE_URL: postgresql://auth:auth@auth-postgres:5432/auth
+      JWT_ACCESS_SECRET: dev-auth-access-secret
+      JWT_REFRESH_SECRET: dev-auth-refresh-secret
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN_DAYS: 7
     depends_on:
       kafka:
         condition: service_healthy
       auth-postgres:
-        condition: service_started
+        condition: service_healthy
 
   orders-service:
     build:
