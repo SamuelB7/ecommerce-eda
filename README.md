@@ -1,8 +1,8 @@
 # Event-Driven E-commerce
 
-Boilerplate inicial de microsservicos NestJS com Kafka em KRaft. Esta fase nao implementa regra de negocio.
+NestJS microservices project with Kafka in KRaft mode. The current version includes the first authentication flows in `auth-service`; the other services are still initial boilerplates with demo Kafka producers and consumers.
 
-## Servicos
+## Services
 
 - `auth-service`: <http://localhost:3001>
 - `orders-service`: <http://localhost:3002>
@@ -10,22 +10,22 @@ Boilerplate inicial de microsservicos NestJS com Kafka em KRaft. Esta fase nao i
 - `shipping-service`: <http://localhost:3004>
 - `notification-service`: <http://localhost:3005>
 
-## Rodar localmente
+## Run Locally
 
 ```bash
 docker compose up --build
 ```
 
-Kafka roda em modo KRaft e pode levar alguns segundos para registrar o broker. Os microsservicos aguardam o healthcheck do Kafka antes de iniciar.
+Kafka runs in KRaft mode and may take a few seconds to register the broker. The microservices wait for the Kafka health check before starting.
 
-Se restarem containers antigos de tentativas anteriores:
+If old containers from previous attempts remain:
 
 ```bash
 docker compose down --remove-orphans
 docker compose up --build
 ```
 
-## Health checks
+## Health Checks
 
 ```bash
 curl http://localhost:3001/health
@@ -43,7 +43,7 @@ curl http://localhost:3005/health
 - `shipping-service`: <http://localhost:3004/docs>
 - `notification-service`: <http://localhost:3005/docs>
 
-## Publicar eventos demo
+## Demo Events
 
 ```bash
 curl -X POST http://localhost:3001/events/demo
@@ -53,4 +53,4 @@ curl -X POST http://localhost:3004/events/demo
 curl -X POST http://localhost:3005/events/demo
 ```
 
-Cada servico publica em seu topico demo e tambem possui um consumidor do mesmo topico com `console.log`.
+Each service publishes to its own demo topic and also has a consumer for the same topic with a basic `console.log`.

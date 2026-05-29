@@ -1,43 +1,43 @@
-# Projeto de Portfólio: E-commerce Orientado a Eventos
+# Portfolio Project: Event-Driven E-commerce
 
-## 1. Objetivo
+## 1. Goal
 
-Construir um e-commerce para portfólio com foco explícito em arquitetura de software, microsserviços, banco por serviço e integração assíncrona por eventos via Kafka.
+Build an e-commerce portfolio project with an explicit focus on software architecture, microservices, database per service, and asynchronous integration through Kafka events.
 
-O objetivo principal aqui não é otimizar o menor esforço possível de implementação. O objetivo é montar um projeto que mostre:
+The main goal is not to minimize implementation effort. The goal is to build a project that demonstrates:
 
-- separação de domínios
-- autonomia por serviço
-- comunicação orientada a eventos
-- consistência eventual com compensações explícitas
-- idempotência
-- rastreabilidade
-- decisões de persistência justificadas por trade-offs reais
+- domain separation
+- service autonomy
+- event-driven communication
+- eventual consistency with explicit compensations
+- idempotency
+- traceability
+- persistence decisions justified by real trade-offs
 
-## 2. Premissas de Arquitetura
+## 2. Architecture Premises
 
-- Cada microsserviço terá seu próprio banco de dados.
-- O broker central de eventos será Apache Kafka.
-- O sistema evitará banco compartilhado.
-- Não haverá transação distribuída entre serviços.
-- Fluxos de negócio assíncronos serão resolvidos com saga por coreografia no início.
-- Cada serviço deve ser executável de forma independente.
-- A estrutura local deve facilitar a futura extração para repositórios separados.
+- Each microservice owns its own database.
+- Apache Kafka is the central event broker.
+- The system avoids shared databases.
+- There are no distributed transactions across services.
+- Initial business flows use choreography-based sagas.
+- Each service must be independently runnable.
+- The local structure must make future extraction into separate repositories easy.
 
-## 3. Decisão Macro
+## 3. Macro Decision
 
-### Recomendação principal
+### Main Recommendation
 
-Use `TypeScript + Node.js + NestJS` como stack base dos microsserviços.
+Use `TypeScript + Node.js + NestJS` as the base stack for the microservices.
 
-Motivo:
+Reasons:
 
-- forte aderência ao seu objetivo de portfólio em TypeScript
-- bom suporte a HTTP, Kafka, DI, módulos e testes
-- documentação madura para microservices com Kafka
-- reduz variação acidental entre serviços e deixa a arquitetura mais visível
+- strong alignment with the TypeScript portfolio goal
+- good support for HTTP, Kafka, dependency injection, modules, and tests
+- mature documentation for Kafka-based microservices
+- reduces accidental variation between services and makes the architecture more visible
 
-### Recomendação de persistência por domínio
+### Persistence Recommendation By Domain
 
 - `auth-service`: `PostgreSQL`
 - `orders-service`: `PostgreSQL`
@@ -45,148 +45,148 @@ Motivo:
 - `shipping-service`: `MongoDB`
 - `notification-service`: `Apache Cassandra`
 
-Essa combinação é a que melhor equilibra:
+This combination best balances:
 
-- coerência arquitetural
-- clareza de trade-offs
-- variedade tecnológica suficiente para portfólio
-- custo operacional ainda controlável em ambiente local
+- architectural coherence
+- clear trade-offs
+- enough technology variety for a portfolio
+- manageable operational cost in a local development environment
 
-## 4. PACELC Aplicado ao Projeto
+## 4. PACELC Applied To The Project
 
-PACELC resume a escolha assim:
+PACELC summarizes database choices this way:
 
-- se houver partição (`P`), o sistema privilegia `Availability` ou `Consistency`?
-- senão (`Else`), privilegia `Latency` ou `Consistency`?
+- if there is a partition (`P`), does the system prefer `Availability` or `Consistency`?
+- else (`Else`), does it prefer `Latency` or `Consistency`?
 
-Perfis usados neste projeto:
+Profiles used in this project:
 
-- `PC/EC`: domínios onde invariantes importam mais que disponibilidade irrestrita
-- `PA/EL`: domínios onde throughput, disponibilidade e baixa latência valem mais que leitura estritamente consistente
+- `PC/EC`: domains where invariants matter more than unrestricted availability
+- `PA/EL`: domains where throughput, availability, and low latency matter more than strictly consistent reads
 
-### Mapeamento por serviço
+### Service Mapping
 
-| Serviço | Perfil PACELC | Justificativa |
+| Service | PACELC Profile | Rationale |
 | --- | --- | --- |
-| Auth | `PC/EC` | identidade, credenciais, sessão e revogação exigem consistência |
-| Orders | `PC/EC` | pedido é trilha de negócio crítica e não pode “sumir” ou divergir |
-| Inventory | `PC/EC` | estoque incorreto gera overselling e quebra de confiança |
-| Shipping | `PA/EL` | tracking e payloads externos toleram consistência eventual |
-| Notification | `PA/EL` | entrega de eventos de notificação é massiva, append-heavy e reprocessável |
+| Auth | `PC/EC` | identity, credentials, sessions, and revocation require consistency |
+| Orders | `PC/EC` | orders are a critical business trail and cannot disappear or diverge |
+| Inventory | `PC/EC` | incorrect inventory causes overselling and breaks trust |
+| Shipping | `PA/EL` | tracking data and external payloads tolerate eventual consistency |
+| Notification | `PA/EL` | notification delivery is high-volume, append-heavy, and reprocessable |
 
-## 5. Stack Transversal Recomendada
+## 5. Recommended Cross-Cutting Stack
 
-### Runtime e linguagem
+### Runtime And Language
 
 - `Node.js 24 LTS`
 - `TypeScript`
 
-### Framework de serviço
+### Service Framework
 
 - `NestJS`
-- `@nestjs/microservices` para todo microsserviço que usar `NestJS` e precisar se comunicar por broker
+- `@nestjs/microservices` for every microservice that uses `NestJS` and needs broker communication
 
-### Camadas internas das APIs
+### Internal API Layers
 
-Todo microsserviço baseado em `NestJS` deve separar a API em três camadas principais:
+Every `NestJS` microservice must separate the API into three main layers:
 
-- `controller`: camada responsável por endpoints HTTP, decorators do NestJS, entrada e saída da API, validação de borda e delegação para a camada de serviço
-- `service`: camada responsável pelas regras de negócio, orquestração de casos de uso, decisões de fluxo e decisão de publicar eventos de domínio
-- `repository`: camada responsável por persistência, queries, transações locais e acesso ao banco de dados exclusivo do próprio microsserviço
+- `controller`: responsible for HTTP endpoints, NestJS decorators, API input and output, boundary validation, and delegation to the service layer
+- `service`: responsible for business rules, use-case orchestration, flow decisions, and decisions to publish domain events
+- `repository`: responsible for persistence, queries, local transactions, and access to the microservice's own database
 
-Regras obrigatórias:
+Mandatory rules:
 
-- `controller` não acessa banco de dados diretamente
-- `controller` não implementa regra de negócio
-- `service` não deve depender de detalhes de transporte HTTP
-- `repository` não publica eventos de domínio diretamente
-- cada `repository` acessa apenas o banco do seu próprio microsserviço
+- `controller` must not access the database directly
+- `controller` must not implement business rules
+- `service` must not depend on HTTP transport details
+- `repository` must not publish domain events directly
+- each `repository` accesses only its own microservice database
 
-### Transporte e eventos
+### Transport And Events
 
-- `Apache Kafka` em modo `KRaft`
-- em desenvolvimento local, use broker/controller combinado
-- em ambiente mais sério, separe controllers de brokers
-- serviços `NestJS` devem usar o pacote nativo `@nestjs/microservices` com `Transport.KAFKA`
-- use `MicroserviceOptions`, `ClientKafka`, `EventPattern` e `KafkaContext` quando aplicável
+- `Apache Kafka` in `KRaft` mode
+- in local development, use a combined broker/controller
+- in more serious environments, split controllers from brokers
+- `NestJS` services must use the native `@nestjs/microservices` package with `Transport.KAFKA`
+- use `MicroserviceOptions`, `ClientKafka`, `EventPattern`, and `KafkaContext` when applicable
 
-### Contratos
+### Contracts
 
-- `OpenAPI` para interfaces HTTP
-- eventos versionados por schema
-- recomendação pragmática inicial: `JSON + validação de schema`
+- `OpenAPI` for HTTP interfaces
+- events versioned by schema
+- pragmatic initial recommendation: `JSON + schema validation`
 
-### Validação
+### Validation
 
-- DTOs validados na borda da aplicação
-- contratos de evento com schemas versionados
+- DTOs validated at the application boundary
+- event contracts with versioned schemas
 
-### Observabilidade
+### Observability
 
-- logs estruturados em JSON
+- structured JSON logs
 - correlation id
 - trace id
 - OpenTelemetry
 - Prometheus + Grafana
 
-### Estratégias obrigatórias para todos os serviços
+### Mandatory Strategies For All Services
 
 - `transactional outbox`
-- consumidores idempotentes
+- idempotent consumers
 - `dead-letter topic`
-- retry com backoff
+- retry with backoff
 - health checks
-- testes de contrato
+- contract tests
 
-### Estratégia de outbox recomendada
+### Recommended Outbox Strategy
 
-Para a primeira versão do portfólio:
+For the first portfolio version:
 
-- implemente `transactional outbox` no próprio serviço
-- publique os eventos com um worker/poller da aplicação
+- implement `transactional outbox` inside each service
+- publish events through an application worker/poller
 
-Para uma segunda versão mais avançada:
+For a more advanced second version:
 
-- evolua para `Debezium Outbox Event Router`
+- evolve to `Debezium Outbox Event Router`
 
-Essa ordem é pragmática. A primeira versão mostra o padrão. A segunda mostra sofisticação operacional.
+This order is pragmatic. The first version demonstrates the pattern. The second version demonstrates operational sophistication.
 
-## 6. Serviço por Serviço
+## 6. Service By Service
 
 ---
 
 ## 6.1 `auth-service`
 
-### Responsabilidades
+### Responsibilities
 
-- cadastro e autenticação
-- emissão de access token e refresh token
-- revogação de sessão
-- publicação de eventos de identidade
+- user registration and authentication
+- access token and refresh token issuing
+- session revocation
+- identity event publishing
 
-### Stack recomendada
+### Recommended Stack
 
 - `NestJS`
 - `PostgreSQL`
 - `Prisma ORM`
 - `JWT`
-- hash de senha com `Argon2`
+- password hashing with `Argon2`
 
-### Banco escolhido
+### Chosen Database
 
 - `PostgreSQL`
 
-### Justificativa PACELC
+### PACELC Rationale
 
-`Auth` é domínio de integridade forte. Você não quer:
+`Auth` is a strong-integrity domain. You do not want:
 
-- sessão revogada aparecendo válida
-- usuário duplicado
-- refresh token em estado ambíguo
+- a revoked session to appear valid
+- duplicate users
+- refresh tokens in an ambiguous state
 
-Por isso, a escolha correta aqui é um perfil `PC/EC`, priorizando consistência.
+For that reason, the right choice here is a `PC/EC` profile that prioritizes consistency.
 
-### Modelo de dados sugerido
+### Suggested Data Model
 
 - `users`
 - `credentials`
@@ -194,55 +194,55 @@ Por isso, a escolha correta aqui é um perfil `PC/EC`, priorizando consistência
 - `password_reset_tokens`
 - `outbox_events`
 
-### Eventos publicados
+### Published Events
 
 - `auth.user.registered.v1`
 - `auth.user.logged_in.v1`
 - `auth.user.password_reset_requested.v1`
 - `auth.user.password_changed.v1`
 
-### Por que essa escolha é boa para portfólio
+### Why This Choice Is Good For A Portfolio
 
-Mostra:
+It demonstrates:
 
-- segurança básica bem feita
-- modelagem transacional
-- trilha de auditoria
-- publicação confiável de eventos a partir de um banco relacional
+- solid baseline security
+- transactional modeling
+- audit trail design
+- reliable event publishing from a relational database
 
 ---
 
 ## 6.2 `orders-service`
 
-### Responsabilidades
+### Responsibilities
 
-- criação do pedido
-- persistência do ciclo de vida do pedido
-- idempotência de criação
-- reação a sucesso ou falha de reserva de estoque
+- order creation
+- persistence of the order lifecycle
+- creation idempotency
+- reaction to inventory reservation success or failure
 
-### Stack recomendada
+### Recommended Stack
 
 - `NestJS`
 - `PostgreSQL`
 - `Prisma ORM`
 
-### Banco escolhido
+### Chosen Database
 
 - `PostgreSQL`
 
-### Justificativa PACELC
+### PACELC Rationale
 
-Pedido é o centro narrativo do e-commerce. O serviço precisa manter:
+Orders are the narrative center of the e-commerce system. The service must preserve:
 
-- consistência de estado
-- transições válidas
-- trilha de auditoria
-- idempotência em comandos
+- state consistency
+- valid transitions
+- audit trail
+- command idempotency
 
-Aqui também faz sentido um perfil `PC/EC`.
+A `PC/EC` profile also makes sense here.
 
-### Modelo de dados sugerido
+### Suggested Data Model
 
 - `orders`
 - `order_items`
@@ -250,345 +250,345 @@ Aqui também faz sentido um perfil `PC/EC`.
 - `idempotency_keys`
 - `outbox_events`
 
-### Eventos publicados
+### Published Events
 
 - `orders.order.created.v1`
 - `orders.order.confirmed.v1`
 - `orders.order.cancelled.v1`
 - `orders.order.awaiting_stock.v1`
 
-### Eventos consumidos
+### Consumed Events
 
 - `inventory.stock.reserved.v1`
 - `inventory.stock.rejected.v1`
 
-### Por que essa escolha é boa para portfólio
+### Why This Choice Is Good For A Portfolio
 
-Esse serviço deixa visível:
+This service makes these topics visible:
 
-- modelagem de máquina de estados
-- consistência transacional
-- coreografia orientada a eventos
-- uso sério de idempotência
+- state machine modeling
+- transactional consistency
+- event-driven choreography
+- serious idempotency usage
 
 ---
 
 ## 6.3 `inventory-service`
 
-### Responsabilidades
+### Responsibilities
 
-- controle de saldo disponível
-- reserva de estoque
-- confirmação ou liberação de reserva
-- prevenção de overselling
+- available stock control
+- stock reservation
+- reservation confirmation or release
+- overselling prevention
 
-### Stack recomendada
+### Recommended Stack
 
 - `NestJS`
 - `PostgreSQL`
 - `Prisma ORM`
 
-### Banco escolhido
+### Chosen Database
 
 - `PostgreSQL`
 
-### Justificativa PACELC
+### PACELC Rationale
 
-Aqui existe uma tentação comum de usar um banco mais orientado a disponibilidade. Para um portfólio sério, eu não recomendo isso para o estoque inicial.
+There is a common temptation to use a more availability-oriented database here. For a serious portfolio, that is not recommended for initial inventory.
 
-Motivo:
+Reasons:
 
-- estoque é domínio de integridade forte
-- erro de concorrência gera venda sem produto
-- compensação depois existe, mas o custo de negócio é alto
+- inventory is a strong-integrity domain
+- concurrency errors can create sales without product availability
+- compensation is possible later, but the business cost is high
 
-Logo, também faz sentido `PC/EC`.
+Therefore, `PC/EC` also makes sense.
 
-### Observação importante
+### Important Note
 
-Se no futuro você quiser uma versão mais avançada, pode evoluir para:
+If you want a more advanced version in the future, you can evolve to:
 
-- reserva por lote
-- particionamento por `sku`
-- leitura materializada para consulta
+- batch-based reservation
+- partitioning by `sku`
+- materialized reads for queries
 
-Mas o sistema de registro do estoque deve continuar consistente.
+But the inventory system of record should remain consistent.
 
-### Modelo de dados sugerido
+### Suggested Data Model
 
 - `stock_items`
 - `stock_reservations`
 - `stock_movements`
 - `outbox_events`
 
-### Eventos publicados
+### Published Events
 
 - `inventory.stock.reserved.v1`
 - `inventory.stock.rejected.v1`
 - `inventory.stock.released.v1`
 - `inventory.stock.adjusted.v1`
 
-### Eventos consumidos
+### Consumed Events
 
 - `orders.order.created.v1`
 - `orders.order.cancelled.v1`
 
-### Por que essa escolha é boa para portfólio
+### Why This Choice Is Good For A Portfolio
 
-Mostra maturidade arquitetural. Você não escolheu tecnologia “exótica” só para variar stack. Você escolheu a persistência mais coerente com a invariável de negócio.
+It shows architectural maturity. The technology was not chosen just to add variety. The persistence model matches the business invariant.
 
 ---
 
 ## 6.4 `shipping-service`
 
-### Responsabilidades
+### Responsibilities
 
-- criação de remessa
-- armazenamento de payloads de transportadora
-- tracking e eventos de expedição
-- atualização de status logístico
+- shipment creation
+- carrier payload storage
+- tracking and shipping events
+- logistics status updates
 
-### Stack recomendada
+### Recommended Stack
 
 - `NestJS`
 - `MongoDB`
 - `MongoDB Node.js Driver`
 
-### Banco escolhido
+### Chosen Database
 
 - `MongoDB`
 
-### Justificativa PACELC
+### PACELC Rationale
 
-Expedição tende a lidar com:
+Shipping usually deals with:
 
-- estruturas variáveis por transportadora
-- muitos eventos de tracking
-- necessidade de anexar payloads externos sem fricção relacional
+- carrier-specific variable structures
+- many tracking events
+- the need to attach external payloads without relational friction
 
-Aqui faz sentido um perfil mais próximo de `PA/EL`: disponibilidade e flexibilidade importam mais que consistência estrita a cada leitura.
+A profile closer to `PA/EL` makes sense here: availability and flexibility matter more than strict consistency on every read.
 
-### Modelo de dados sugerido
+### Suggested Data Model
 
 - `shipments`
 - `shipment_tracking_events`
 - `carrier_callbacks`
 - `outbox_events`
 
-### Eventos publicados
+### Published Events
 
 - `shipping.shipment.created.v1`
 - `shipping.shipment.dispatched.v1`
 - `shipping.shipment.delivered.v1`
 - `shipping.shipment.failed.v1`
 
-### Eventos consumidos
+### Consumed Events
 
 - `inventory.stock.reserved.v1`
 - `orders.order.confirmed.v1`
 
-### Por que essa escolha é boa para portfólio
+### Why This Choice Is Good For A Portfolio
 
-Mostra:
+It demonstrates:
 
-- leitura correta do domínio
-- uso de banco documental onde o shape dos dados muda
-- integração com payloads externos sem normalização artificial
+- correct domain reading
+- document database usage where data shape changes
+- integration with external payloads without artificial normalization
 
 ---
 
 ## 6.5 `notification-service`
 
-### Responsabilidades
+### Responsibilities
 
-- envio de e-mail, push, webhook ou SMS no futuro
-- registro de tentativas
-- controle de retries
-- trilha de entregas por canal
+- future email, push, webhook, or SMS sending
+- attempt logging
+- retry control
+- delivery history by channel
 
-### Stack recomendada
+### Recommended Stack
 
 - `NestJS`
 - `Apache Cassandra`
-- driver Node.js para Cassandra
+- Node.js driver for Cassandra
 
-### Banco escolhido
+### Chosen Database
 
 - `Apache Cassandra`
 
-### Justificativa PACELC
+### PACELC Rationale
 
-Notificação é o melhor domínio para assumir explicitamente um perfil `PA/EL`.
+Notification is the best domain to explicitly assume a `PA/EL` profile.
 
-Motivo:
+Reasons:
 
-- alto volume de gravação
-- padrão append-heavy
-- consultas previsíveis por destinatário, campanha, status e janela de tempo
-- consistência eventual é aceitável
-- reprocessamento é parte natural do domínio
+- high write volume
+- append-heavy pattern
+- predictable queries by recipient, campaign, status, and time window
+- eventual consistency is acceptable
+- reprocessing is a natural part of the domain
 
-### Modelo de dados sugerido
+### Suggested Data Model
 
 - `notifications_by_recipient`
 - `notifications_by_status`
 - `delivery_attempts_by_notification`
 
-### Eventos publicados
+### Published Events
 
 - `notification.sent.v1`
 - `notification.failed.v1`
 - `notification.retry_scheduled.v1`
 
-### Eventos consumidos
+### Consumed Events
 
 - `auth.user.registered.v1`
 - `orders.order.created.v1`
 - `shipping.shipment.dispatched.v1`
 - `shipping.shipment.delivered.v1`
 
-### Por que essa escolha é boa para portfólio
+### Why This Choice Is Good For A Portfolio
 
-Esse serviço deixa clara a aplicação prática de PACELC:
+This service makes the practical application of PACELC clear:
 
-- disponibilidade acima de consistência estrita
-- leitura modelada por padrão de acesso
-- design orientado a throughput
+- availability over strict consistency
+- reads modeled by access pattern
+- throughput-oriented design
 
-## 7. Prós e Contras das Tecnologias Selecionadas
+## 7. Pros And Cons Of The Selected Technologies
 
 ## 7.1 `NestJS`
 
-### Prós
+### Pros
 
-- excelente encaixe com TypeScript
-- DI e modularidade úteis para microsserviços
-- suporte nativo a Kafka no ecossistema
-- integração oficial com brokers via `@nestjs/microservices`
-- permite usar Kafka junto do ciclo de vida do NestJS, DI, decorators, pipes, interceptors e filtros
-- Swagger/OpenAPI simples
-- arquitetura fácil de demonstrar em portfólio
+- excellent fit with TypeScript
+- dependency injection and modularity are useful for microservices
+- native Kafka support in the ecosystem
+- official broker integration through `@nestjs/microservices`
+- allows Kafka to be used with the NestJS lifecycle, dependency injection, decorators, pipes, interceptors, and filters
+- simple Swagger/OpenAPI integration
+- architecture is easy to demonstrate in a portfolio
 
-### Contras
+### Cons
 
-- abstração alta demais para alguns casos simples
-- risco de excesso de boilerplate
-- curva de aprendizado maior que um Fastify puro
-- a integração com Kafka ainda exige cuidado explícito com offsets, grupos de consumidor, idempotência e semântica de eventos
+- abstraction can be too high for simple cases
+- risk of excessive boilerplate
+- steeper learning curve than plain Fastify
+- Kafka integration still requires explicit care with offsets, consumer groups, idempotency, and event semantics
 
 ## 7.2 `PostgreSQL`
 
-### Prós
+### Pros
 
-- consistência forte
-- transações maduras
-- excelente para regras de negócio e integridade
-- bom suporte a índices, constraints e modelagem relacional
-- encaixa muito bem com outbox
+- strong consistency
+- mature transactions
+- excellent fit for business rules and integrity
+- good support for indexes, constraints, and relational modeling
+- fits very well with the outbox pattern
 
-### Contras
+### Cons
 
-- horizontal scaling mais trabalhoso que bancos orientados a partição nativa
-- schemas e joins podem virar gargalo de evolução se o domínio estiver mal recortado
-- não é a melhor escolha para payloads muito heterogêneos
+- horizontal scaling is more difficult than with natively partition-oriented databases
+- schemas and joins can become evolution bottlenecks if the domain boundaries are poorly designed
+- not the best choice for highly heterogeneous payloads
 
 ## 7.3 `Prisma ORM`
 
-### Prós
+### Pros
 
-- ótima DX em TypeScript
-- tipagem forte
-- migrations simples
-- bom para produtividade de portfólio
+- great TypeScript developer experience
+- strong typing
+- simple migrations
+- good productivity for a portfolio project
 
-### Contras
+### Cons
 
-- abstrai parte do SQL e pode esconder detalhes relevantes
-- cenários muito específicos às vezes exigem SQL manual
-- menos adequado se você quiser controle extremo sobre cada query desde o início
+- abstracts part of SQL and can hide relevant details
+- very specific scenarios may require manual SQL
+- less suitable if you want extreme control over every query from the beginning
 
 ## 7.4 `MongoDB`
 
-### Prós
+### Pros
 
-- modelo documental flexível
-- bom encaixe para payloads externos e tracking
-- evolução de schema menos dolorosa
-- change streams são úteis em cenários orientados a eventos
+- flexible document model
+- good fit for external payloads and tracking
+- less painful schema evolution
+- change streams are useful in event-driven scenarios
 
-### Contras
+### Cons
 
-- consistência e modelagem exigem mais disciplina da aplicação
-- fácil cair em duplicação mal pensada
-- transações existem, mas não devem virar muleta para modelagem ruim
+- consistency and modeling require more discipline from the application
+- easy to fall into poorly designed duplication
+- transactions exist, but should not become a crutch for bad modeling
 
 ## 7.5 `MongoDB Node.js Driver`
 
-### Prós
+### Pros
 
-- driver oficial
-- menos magia que um ODM
-- mais controle sobre índices, collections e queries
+- official driver
+- less magic than an ODM
+- more control over indexes, collections, and queries
 
-### Contras
+### Cons
 
-- mais verboso
-- menos produtividade inicial que um ODM como Mongoose
+- more verbose
+- lower initial productivity than an ODM like Mongoose
 
 ## 7.6 `Apache Cassandra`
 
-### Prós
+### Pros
 
-- altíssimo throughput de escrita
-- ótima disponibilidade
-- consistência ajustável
-- muito bom para workloads append-only e consultas previsíveis
-- TTL e modelagem por acesso encaixam bem em logs de entrega
+- very high write throughput
+- excellent availability
+- tunable consistency
+- very good for append-only workloads and predictable queries
+- TTL and access-pattern modeling fit delivery logs well
 
-### Contras
+### Cons
 
-- modelagem é mais rígida e orientada a query
-- joins inexistentes
-- operação mais complexa
-- não é uma boa escolha para domínios transacionais ricos
+- modeling is more rigid and query-oriented
+- no joins
+- more complex operations
+- not a good choice for rich transactional domains
 
 ## 7.7 `Apache Kafka`
 
-### Prós
+### Pros
 
-- backbone natural para arquitetura orientada a eventos
-- retenção, replay e particionamento
-- desacoplamento forte entre produtores e consumidores
-- excelente sinal arquitetural para portfólio
+- natural backbone for event-driven architecture
+- retention, replay, and partitioning
+- strong decoupling between producers and consumers
+- excellent architectural signal for a portfolio
 
-### Contras
+### Cons
 
-- aumenta bastante a complexidade operacional
-- exige disciplina com versionamento de eventos
-- sem idempotência e outbox, a arquitetura fica frágil
+- significantly increases operational complexity
+- requires discipline with event versioning
+- without idempotency and outbox, the architecture becomes fragile
 
-## 8. Decisões Estruturais do Repositório
+## 8. Repository Structural Decisions
 
-## 8.1 Recomendação principal
+## 8.1 Main Recommendation
 
-Monte desde já um repositório agregador com serviços independentes por pasta, mas sem compartilhar código de domínio entre eles.
+Start with an aggregator repository that contains independent services by folder, without sharing domain code between them.
 
-Isso te dá:
+This gives you:
 
-- facilidade para extrair cada serviço para um repositório próprio
-- menor acoplamento acidental
-- narrativa arquitetural mais limpa
-- caminho simples para migrar depois para `git submodule` ou `git subtree`
+- an easy path to extract each service into its own repository
+- less accidental coupling
+- a cleaner architectural narrative
+- a simple path to migrate later to `git submodule` or `git subtree`
 
-## 8.2 Estrutura sugerida
+## 8.2 Suggested Structure
 
 ```text
 ecommerce/
   docs/
     arquitetura-e-stack.md
     event-storming.md
-    topicos-kafka.md
-    decisoes-arquiteturais/
+    kafka-topics.md
+    architecture-decision-records/
   auth-service/
     src/
       controllers/
@@ -664,147 +664,147 @@ ecommerce/
   README.md
 ```
 
-## 8.3 Regra importante
+## 8.3 Important Rule
 
-Evite criar um `shared/` com regra de negócio compartilhada.
+Avoid creating a `shared/` package with shared business rules.
 
-Compartilhe no máximo:
+Share at most:
 
-- contratos de evento
+- event contracts
 - schemas
-- utilitários puramente técnicos e muito pequenos
+- very small, purely technical utilities
 
-Se você compartilhar lógica de domínio, a separação futura em múltiplos repositórios fica pior e a autonomia dos serviços enfraquece.
+If domain logic is shared, future separation into multiple repositories gets worse and service autonomy becomes weaker.
 
-## 9. Comunicação Entre Serviços
+## 9. Service Communication
 
-## 9.1 Estilo recomendado
+## 9.1 Recommended Style
 
-- `HTTP` apenas para borda externa e poucos comandos síncronos inevitáveis
-- `Kafka` para integração de negócio
+- use `HTTP` only for the external edge and a few unavoidable synchronous commands
+- use `Kafka` for business integration
 
-## 9.2 Fluxo inicial sugerido
+## 9.2 Suggested Initial Flow
 
-### Cadastro
+### Registration
 
-1. `auth-service` registra usuário
-2. publica `auth.user.registered.v1`
-3. `notification-service` envia mensagem de boas-vindas
+1. `auth-service` registers the user.
+2. It publishes `auth.user.registered.v1`.
+3. `notification-service` sends a welcome message.
 
-### Criação de pedido
+### Order Creation
 
-1. `orders-service` cria pedido com status inicial
-2. publica `orders.order.created.v1`
-3. `inventory-service` tenta reservar estoque
-4. publica `inventory.stock.reserved.v1` ou `inventory.stock.rejected.v1`
-5. `orders-service` confirma ou cancela o pedido
-6. `shipping-service` cria remessa quando o pedido estiver pronto
-7. `notification-service` dispara notificações ao longo do fluxo
+1. `orders-service` creates the order with its initial status.
+2. It publishes `orders.order.created.v1`.
+3. `inventory-service` tries to reserve stock.
+4. It publishes `inventory.stock.reserved.v1` or `inventory.stock.rejected.v1`.
+5. `orders-service` confirms or cancels the order.
+6. `shipping-service` creates the shipment when the order is ready.
+7. `notification-service` sends notifications throughout the flow.
 
-## 9.3 Convenção de tópicos
+## 9.3 Topic Naming Convention
 
-Sugestão:
+Suggestion:
 
-- `<dominio>.<agregado>.<evento>.v1`
+- `<domain>.<aggregate>.<event>.v1`
 
-Exemplos:
+Examples:
 
 - `auth.user.registered.v1`
 - `orders.order.created.v1`
 - `inventory.stock.reserved.v1`
 - `shipping.shipment.dispatched.v1`
 
-## 10. Padrões Arquiteturais que Valem Muito no Portfólio
+## 10. Architectural Patterns With Strong Portfolio Value
 
-Se você quer que o projeto “pareça sênior”, estes padrões devem aparecer claramente:
+If you want the project to feel senior, these patterns should appear clearly:
 
 - `transactional outbox`
-- consumidores idempotentes
+- idempotent consumers
 - `correlation-id`
-- retries com DLQ
-- versionamento de eventos
-- separação explícita entre `controller`, `service` e `repository`
-- `README` por serviço explicando responsabilidade, eventos publicados e eventos consumidos
-- `ADR` para decisões maiores
+- retries with DLQ
+- event versioning
+- explicit separation between `controller`, `service`, and `repository`
+- one `README` per service explaining responsibility, published events, and consumed events
+- `ADR` documents for larger decisions
 
-## 11. O que eu não recomendo para a primeira versão
+## 11. What Is Not Recommended For The First Version
 
-### `Keycloak` no lugar do `auth-service`
+### `Keycloak` Instead Of `auth-service`
 
-Não para a primeira versão do portfólio.
+Not for the first portfolio version.
 
-Motivo:
+Reason:
 
-- resolve autenticação, mas esconde seu desenho arquitetural
-- o repositório fica parecendo integração de produto, não design de sistema
+- it solves authentication, but hides your architectural design
+- the repository starts to look like product integration instead of system design
 
-Você pode adicionar isso depois como comparação arquitetural.
+You can add it later as an architectural comparison.
 
-### `MongoDB` para pedidos ou estoque
+### `MongoDB` For Orders Or Inventory
 
-Não recomendo no início.
+Not recommended initially.
 
-Motivo:
+Reason:
 
-- enfraquece a narrativa de integridade forte
-- aumenta risco de modelagem inconsistente
+- it weakens the strong-integrity narrative
+- it increases the risk of inconsistent modeling
 
-### `Redis` como banco principal de algum serviço
+### `Redis` As The Main Database For Any Service
 
-Também não recomendo como store principal na primeira versão.
+Also not recommended as a system-of-record database in the first version.
 
-Motivo:
+Reason:
 
-- Kafka já cobre a parte de streaming/eventos
-- para esse portfólio, Redis agrega mais como cache ou rate limit do que como banco de sistema de registro
+- Kafka already covers the streaming and eventing side
+- for this portfolio, Redis adds more value as cache or rate limiter than as a primary database
 
-## 12. Roadmap Recomendado
+## 12. Recommended Roadmap
 
-## Fase 1
+## Phase 1
 
-- estrutura do agregador
-- Kafka local
+- aggregator structure
+- local Kafka
 - `auth-service`
 - `orders-service`
 - `inventory-service`
 
-## Fase 2
+## Phase 2
 
 - `shipping-service`
 - `notification-service`
-- observabilidade
-- DLQ e retries
+- observability
+- DLQ and retries
 
-## Fase 3
+## Phase 3
 
-- extração de cada serviço para seu próprio repositório
-- agregador vira repositório de compose, documentação e automação local
+- extraction of each service into its own repository
+- aggregator becomes the repository for Compose, documentation, and local automation
 
-## 13. Decisão Final Recomendada
+## 13. Final Recommended Decision
 
-Se fosse meu projeto de portfólio, eu seguiria exatamente esta combinação:
+If this were my portfolio project, I would follow exactly this combination:
 
-- base de serviços: `Node.js + TypeScript + NestJS`
-- integração de mensageria nos serviços NestJS: `@nestjs/microservices`
+- service base: `Node.js + TypeScript + NestJS`
+- messaging integration in NestJS services: `@nestjs/microservices`
 - broker: `Apache Kafka`
 - `auth-service`: `PostgreSQL + Prisma`
 - `orders-service`: `PostgreSQL + Prisma`
 - `inventory-service`: `PostgreSQL + Prisma`
-- `shipping-service`: `MongoDB + driver oficial`
-- `notification-service`: `Cassandra + driver Node.js`
+- `shipping-service`: `MongoDB + official driver`
+- `notification-service`: `Cassandra + Node.js driver`
 
-Ela mostra amplitude suficiente sem virar uma feira de tecnologia.
+It shows enough breadth without turning into a technology fair.
 
-Esse ponto é importante: um bom portfólio não impressiona por quantidade de ferramentas. Ele impressiona por coerência de decisão.
+This point matters: a good portfolio is not impressive because of tool quantity. It is impressive because of coherent decisions.
 
-## 14. Referências
+## 14. References
 
-- PACELC por Daniel Abadi: <https://dbmsmusings.blogspot.com/2010/04/problems-with-cap-and-yahoos-little.html>
-- Discussão posterior de PACELC: <https://dbmsmusings.blogspot.com/2017/>
-- NestJS microservices com Kafka: <https://docs.nestjs.com/microservices/kafka>
+- PACELC by Daniel Abadi: <https://dbmsmusings.blogspot.com/2010/04/problems-with-cap-and-yahoos-little.html>
+- Later PACELC discussion: <https://dbmsmusings.blogspot.com/2017/>
+- NestJS microservices with Kafka: <https://docs.nestjs.com/microservices/kafka>
 - NestJS microservices basics: <https://docs.nestjs.com/microservices/basics>
-- Node.js release policy e versões LTS: <https://nodejs.org/en/about/previous-releases>
-- Apache Kafka downloads e releases suportadas: <https://kafka.apache.org/community/downloads/>
+- Node.js release policy and LTS versions: <https://nodejs.org/en/about/previous-releases>
+- Apache Kafka downloads and supported releases: <https://kafka.apache.org/community/downloads/>
 - Kafka KRaft: <https://kafka.apache.org/40/operations/kraft/>
 - PostgreSQL logical replication: <https://www.postgresql.org/docs/current/logical-replication.html>
 - PostgreSQL JSON types: <https://www.postgresql.org/docs/current/static/datatype-json.html>
@@ -816,5 +816,5 @@ Esse ponto é importante: um bom portfólio não impressiona por quantidade de f
 - Cassandra overview: <https://cassandra.apache.org/doc/latest/cassandra/architecture/overview.html>
 - Cassandra tunable consistency: <https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html>
 - Cassandra data modeling: <https://cassandra.apache.org/doc/latest/cassandra/developing/data-modeling/index.html>
-- Cassandra TTL/time-series guidance: <https://cassandra.apache.org/doc/stable/cassandra/managing/operating/compaction/twcs.html>
+- Cassandra TTL and time-series guidance: <https://cassandra.apache.org/doc/stable/cassandra/managing/operating/compaction/twcs.html>
 - Debezium outbox event router: <https://debezium.io/documentation/reference/2.6/transformations/outbox-event-router.html>
