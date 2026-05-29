@@ -86,6 +86,22 @@ Perfis usados neste projeto:
 - `NestJS`
 - `@nestjs/microservices` para todo microsserviço que usar `NestJS` e precisar se comunicar por broker
 
+### Camadas internas das APIs
+
+Todo microsserviço baseado em `NestJS` deve separar a API em três camadas principais:
+
+- `controller`: camada responsável por endpoints HTTP, decorators do NestJS, entrada e saída da API, validação de borda e delegação para a camada de serviço
+- `service`: camada responsável pelas regras de negócio, orquestração de casos de uso, decisões de fluxo e decisão de publicar eventos de domínio
+- `repository`: camada responsável por persistência, queries, transações locais e acesso ao banco de dados exclusivo do próprio microsserviço
+
+Regras obrigatórias:
+
+- `controller` não acessa banco de dados diretamente
+- `controller` não implementa regra de negócio
+- `service` não deve depender de detalhes de transporte HTTP
+- `repository` não publica eventos de domínio diretamente
+- cada `repository` acessa apenas o banco do seu próprio microsserviço
+
 ### Transporte e eventos
 
 - `Apache Kafka` em modo `KRaft`
@@ -575,6 +591,11 @@ ecommerce/
     decisoes-arquiteturais/
   auth-service/
     src/
+      controllers/
+      services/
+      repositories/
+      events/
+      main.ts
     test/
     prisma/
     Dockerfile
@@ -583,6 +604,11 @@ ecommerce/
     tsconfig.json
   orders-service/
     src/
+      controllers/
+      services/
+      repositories/
+      events/
+      main.ts
     test/
     prisma/
     Dockerfile
@@ -591,6 +617,11 @@ ecommerce/
     tsconfig.json
   inventory-service/
     src/
+      controllers/
+      services/
+      repositories/
+      events/
+      main.ts
     test/
     prisma/
     Dockerfile
@@ -599,6 +630,11 @@ ecommerce/
     tsconfig.json
   shipping-service/
     src/
+      controllers/
+      services/
+      repositories/
+      events/
+      main.ts
     test/
     Dockerfile
     README.md
@@ -606,6 +642,11 @@ ecommerce/
     tsconfig.json
   notification-service/
     src/
+      controllers/
+      services/
+      repositories/
+      events/
+      main.ts
     test/
     Dockerfile
     README.md
@@ -682,6 +723,7 @@ Se você quer que o projeto “pareça sênior”, estes padrões devem aparecer
 - `correlation-id`
 - retries com DLQ
 - versionamento de eventos
+- separação explícita entre `controller`, `service` e `repository`
 - `README` por serviço explicando responsabilidade, eventos publicados e eventos consumidos
 - `ADR` para decisões maiores
 
