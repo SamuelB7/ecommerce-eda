@@ -1,0 +1,19 @@
+[submodule "auth-service"]
+	path = auth-service
+	url = https://github.com/SamuelB7/auth-service.git
+
+[submodule "orders-service"]
+	path = orders-service
+	url = https://github.com/SamuelB7/orders-service.git
+
+[submodule "inventory-service"]
+	path = inventory-service
+	url = https://github.com/SamuelB7/inventory-service.git
+
+[submodule "shipping-service"]
+	path = shipping-service
+	url = https://github.com/SamuelB7/shipping-service.git
+
+[submodule "notification-service"]
+	path = notification-service
+	url = https://github.com/SamuelB7/notification-service.git
