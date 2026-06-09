@@ -55,6 +55,15 @@ The scope is API behavior only. Frontend applications will be planned later for 
 - External API consumers should use HTTP APIs. Cross-service business integration should prefer Kafka events.
 - Requirement IDs are stable documentation identifiers and should be reused in future API specs, tickets, and tests.
 
+### 4.1 Domain-Driven Design Mapping Guidelines
+
+- Each service in the ownership legend is a DDD bounded context.
+- Each requirement should map to an application use case in the primary service.
+- Requirement IDs should guide use case naming. For example, `FR-ORDER-001` can become `CreateOrderUseCase`.
+- Domain language in this document should drive aggregate, entity, value object, and domain event names.
+- Supporting services should integrate through public APIs or Kafka events, not shared domain code.
+- Domain models belong to their owning service and must not be reused as shared packages by other services.
+
 ## 5. Functional Requirements Matrix
 
 ### 5.1 Identity And Access
@@ -329,4 +338,3 @@ The scope is API behavior only. Frontend applications will be planned later for 
 | `FR-CROSS-003` | Sensitive APIs must enforce actor permissions. | `auth-service` | Owning service | Validate roles, ownership, and service-specific access rules. |
 | `FR-CROSS-004` | Important business actions must publish domain events. | Owning service | Kafka consumers | Publish versioned events using `<domain>.<aggregate>.<event>.v1`. |
 | `FR-CROSS-005` | Important state changes must be auditable. | Owning service | `admin-service`, `analytics-service` | Record actor, action, target, reason, and timestamp. |
-

@@ -26,7 +26,15 @@ Build a service with `npm run build`. In `auth-service`, use `npm run prisma:gen
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript and NestJS conventions. Keep controllers thin, put business rules in services, and isolate persistence in repositories. File names use kebab-case with Nest suffixes, such as `auth.controller.ts`, `auth.service.ts`, `access-token.guard.ts`, and `signup.dto.ts`. Classes use PascalCase; variables, functions, and DTO properties use camelCase.
+Use TypeScript and NestJS conventions. Keep controllers thin, put business rules in application use cases, and isolate persistence in infrastructure repositories. File names use kebab-case with Nest suffixes, such as `auth.controller.ts`, `access-token.guard.ts`, and `signup.dto.ts`. Classes use PascalCase; variables, functions, and DTO properties use camelCase.
+
+## Domain-Driven Design Guidelines
+
+Each microservice is a DDD bounded context. New business logic should be organized by domain module or aggregate, not by global technical folders. Use this structure for new domains: `src/<domain-module>/domain/`, `application/`, `infrastructure/`, and `interfaces/`.
+
+The `domain/` layer contains entities, value objects, domain services, domain events, and repository ports. It must not depend on NestJS, Prisma, HTTP DTOs, Kafka clients, or external SDKs. The `application/` layer contains use cases, commands, queries, transaction boundaries, and outbox coordination. The `interfaces/` layer contains HTTP controllers, Kafka consumers, and request/response DTOs. The `infrastructure/` layer contains database adapters, external clients, Kafka producers, and repository implementations.
+
+Controllers and consumers call application use cases; they do not contain business rules. Repositories implement domain ports and access only the owning microservice database. Existing services can migrate incrementally, but all new domain work should follow this DDD structure.
 
 ## Testing Guidelines
 

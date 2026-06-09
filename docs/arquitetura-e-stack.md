@@ -23,6 +23,7 @@ The main goal is not to minimize implementation effort. The goal is to build a p
 - Initial business flows use choreography-based sagas.
 - Each service must be independently runnable.
 - The local structure must make future extraction into separate repositories easy.
+- Each microservice is a Domain-Driven Design bounded context and organizes business logic by domain module or aggregate.
 
 ## 3. Macro Decision
 
@@ -86,21 +87,25 @@ Profiles used in this project:
 - `NestJS`
 - `@nestjs/microservices` for every microservice that uses `NestJS` and needs broker communication
 
-### Internal API Layers
+### Domain-Driven Internal Structure
 
-Every `NestJS` microservice must separate the API into three main layers:
+Every `NestJS` microservice is a DDD bounded context. Inside each service, organize business logic by domain module or aggregate instead of global technical folders.
 
-- `controller`: responsible for HTTP endpoints, NestJS decorators, API input and output, boundary validation, and delegation to the service layer
-- `service`: responsible for business rules, use-case orchestration, flow decisions, and decisions to publish domain events
-- `repository`: responsible for persistence, queries, local transactions, and access to the microservice's own database
+Recommended layers inside each domain module:
+
+- `domain`: entities, value objects, domain services, domain events, aggregate rules, and repository ports
+- `application`: use cases, commands, queries, orchestration, transaction boundaries, and outbox coordination
+- `infrastructure`: database adapters, external service clients, Kafka producers, and repository implementations
+- `interfaces`: HTTP controllers, Kafka consumers, request DTOs, response DTOs, and transport-specific validation
 
 Mandatory rules:
 
-- `controller` must not access the database directly
-- `controller` must not implement business rules
-- `service` must not depend on HTTP transport details
-- `repository` must not publish domain events directly
-- each `repository` accesses only its own microservice database
+- `domain` must not depend on `NestJS`, `Prisma`, HTTP DTOs, Kafka clients, or external SDKs
+- `interfaces` must not implement business rules
+- `application` coordinates use cases but keeps transport details out
+- `infrastructure` implements ports defined by `domain` or `application`
+- repositories access only their own microservice database
+- domain events are named in business language and are published through application/outbox workflows
 
 ### Transport And Events
 
@@ -589,65 +594,31 @@ ecommerce/
     event-storming.md
     kafka-topics.md
     architecture-decision-records/
-  auth-service/
+  <service-name>/
     src/
-      controllers/
-      services/
-      repositories/
-      events/
+      <domain-module>/
+        domain/
+          entities/
+          value-objects/
+          events/
+          repositories/
+        application/
+          commands/
+          queries/
+          use-cases/
+        infrastructure/
+          database/
+          messaging/
+          repositories/
+        interfaces/
+          http/
+          kafka/
+          dtos/
+        <domain-module>.module.ts
+      config/
       main.ts
     test/
-    prisma/
-    Dockerfile
-    README.md
-    package.json
-    tsconfig.json
-  orders-service/
-    src/
-      controllers/
-      services/
-      repositories/
-      events/
-      main.ts
-    test/
-    prisma/
-    Dockerfile
-    README.md
-    package.json
-    tsconfig.json
-  inventory-service/
-    src/
-      controllers/
-      services/
-      repositories/
-      events/
-      main.ts
-    test/
-    prisma/
-    Dockerfile
-    README.md
-    package.json
-    tsconfig.json
-  shipping-service/
-    src/
-      controllers/
-      services/
-      repositories/
-      events/
-      main.ts
-    test/
-    Dockerfile
-    README.md
-    package.json
-    tsconfig.json
-  notification-service/
-    src/
-      controllers/
-      services/
-      repositories/
-      events/
-      main.ts
-    test/
+    prisma/ # only for services that use Prisma
     Dockerfile
     README.md
     package.json
@@ -675,6 +646,12 @@ Share at most:
 - very small, purely technical utilities
 
 If domain logic is shared, future separation into multiple repositories gets worse and service autonomy becomes weaker.
+
+## 8.4 DDD Migration Rule
+
+Existing services can migrate incrementally from the current technical-folder structure. Do not block feature work only to move files. However, every new domain capability should be created inside a domain module using the `domain`, `application`, `infrastructure`, and `interfaces` layers.
+
+When touching existing code for a meaningful business change, prefer moving only the affected flow toward the DDD structure. Avoid large mechanical refactors that do not change behavior or improve a domain boundary.
 
 ## 9. Service Communication
 
@@ -723,7 +700,9 @@ If you want the project to feel senior, these patterns should appear clearly:
 - `correlation-id`
 - retries with DLQ
 - event versioning
-- explicit separation between `controller`, `service`, and `repository`
+- DDD bounded contexts per microservice
+- domain modules organized by aggregate or business capability
+- explicit separation between `domain`, `application`, `infrastructure`, and `interfaces`
 - one `README` per service explaining responsibility, published events, and consumed events
 - `ADR` documents for larger decisions
 
