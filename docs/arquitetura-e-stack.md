@@ -40,17 +40,34 @@ Reasons:
 
 ### Persistence Recommendation By Domain
 
-- `auth-service`: `PostgreSQL`
-- `orders-service`: `PostgreSQL`
-- `inventory-service`: `PostgreSQL`
-- `shipping-service`: `MongoDB`
-- `notification-service`: `Apache Cassandra`
+| Service | Database | Access Library | PACELC Profile | Reason |
+| --- | --- | --- | --- | --- |
+| `auth-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | credentials, sessions, revocation, and uniqueness need consistency |
+| `customer-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | profiles, addresses, privacy data, and ownership rules need consistency |
+| `seller-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | KYC, seller status, team permissions, and payout references need consistency |
+| `catalog-service` | `PostgreSQL` | `Prisma ORM + JSONB` | `PC/EC` | product source of truth needs integrity, while attributes need some flexibility |
+| `search-service` | `OpenSearch` | official OpenSearch client | `PA/EL` | search is a derived read model optimized for relevance, facets, and low latency |
+| `recommendation-service` | `Apache Cassandra` | Node.js driver for Cassandra | `PA/EL` | personalized feeds are high-volume, read-optimized, and eventually consistent |
+| `cart-service` | `Redis` | official Redis client | `PA/EL` | active carts need low latency, TTL, and fast mutation before checkout |
+| `promotion-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | coupon usage, campaign state, and eligibility limits need consistency |
+| `orders-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | order lifecycle, idempotency, and audit trail need consistency |
+| `payment-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | payments, refunds, reconciliation, and finance audit need consistency |
+| `inventory-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | stock reservations and overselling prevention need consistency |
+| `shipping-service` | `MongoDB` | MongoDB Node.js driver | `PA/EL` | carrier payloads and tracking timelines benefit from flexible documents |
+| `return-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | return eligibility, disputes, and refund orchestration need consistency |
+| `review-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | verified-purchase reviews, moderation state, and rating audit need consistency |
+| `question-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | product Q&A ownership, answers, and moderation need consistency |
+| `notification-service` | `Apache Cassandra` | Node.js driver for Cassandra | `PA/EL` | delivery history is append-heavy and tolerates eventual consistency |
+| `settlement-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | seller ledger, commissions, holds, and payouts need consistency |
+| `support-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | tickets, assignment, case history, and audit need consistency |
+| `admin-service` | `PostgreSQL` | `Prisma ORM` | `PC/EC` | policies, overrides, and audit logs need consistency |
+| `analytics-service` | `ClickHouse` | official ClickHouse client | `PA/EL` | analytics needs high-volume inserts, aggregates, and dashboard queries |
 
 This combination best balances:
 
 - architectural coherence
 - clear trade-offs
-- enough technology variety for a portfolio
+- specialized databases only where their access pattern is clearly justified
 - manageable operational cost in a local development environment
 
 ## 4. PACELC Applied To The Project
@@ -70,10 +87,25 @@ Profiles used in this project:
 | Service | PACELC Profile | Rationale |
 | --- | --- | --- |
 | Auth | `PC/EC` | identity, credentials, sessions, and revocation require consistency |
+| Customer | `PC/EC` | profile ownership, addresses, and privacy workflows require consistency |
+| Seller | `PC/EC` | seller lifecycle, KYC, team roles, and payout references require consistency |
+| Catalog | `PC/EC` | listing lifecycle and category integrity require a consistent source of truth |
+| Search | `PA/EL` | search can be rebuilt from events and prioritizes low-latency reads |
+| Recommendation | `PA/EL` | feeds are derived and tolerate eventual consistency |
+| Cart | `PA/EL` | active cart state prioritizes low latency and can be revalidated at checkout |
+| Promotion | `PC/EC` | coupon usage and campaign limits require consistency |
 | Orders | `PC/EC` | orders are a critical business trail and cannot disappear or diverge |
+| Payment | `PC/EC` | payment state, refunds, and reconciliation require consistency |
 | Inventory | `PC/EC` | incorrect inventory causes overselling and breaks trust |
 | Shipping | `PA/EL` | tracking data and external payloads tolerate eventual consistency |
+| Return | `PC/EC` | return decisions, disputes, and refunds require consistency |
+| Review | `PC/EC` | verified-purchase rules and moderation require consistency |
+| Question | `PC/EC` | answer ownership and moderation state require consistency |
 | Notification | `PA/EL` | notification delivery is high-volume, append-heavy, and reprocessable |
+| Settlement | `PC/EC` | seller ledger and payouts require financial consistency |
+| Support | `PC/EC` | case assignment, status, and audit trail require consistency |
+| Admin | `PC/EC` | policy changes and operational overrides require consistency |
+| Analytics | `PA/EL` | dashboards and aggregates are derived from event streams |
 
 ## 5. Recommended Cross-Cutting Stack
 
@@ -460,6 +492,633 @@ This service makes the practical application of PACELC clear:
 - reads modeled by access pattern
 - throughput-oriented design
 
+---
+
+## 6.6 `customer-service`
+
+### Responsibilities
+
+- customer profile management
+- delivery addresses
+- preferences, wishlists, and followed sellers
+- privacy export workflows
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Customer data is a consistency-oriented domain. Address ownership, default address selection, profile updates, and privacy export workflows should not diverge.
+
+This service uses a `PC/EC` profile because correctness matters more than unrestricted availability.
+
+### Suggested Data Model
+
+- `customers`
+- `customer_addresses`
+- `customer_preferences`
+- `wishlists`
+- `followed_sellers`
+- `outbox_events`
+
+### Published Events
+
+- `customer.profile.created.v1`
+- `customer.profile.updated.v1`
+- `customer.address.updated.v1`
+
+---
+
+## 6.7 `seller-service`
+
+### Responsibilities
+
+- seller onboarding
+- store profile management
+- KYC and business document review state
+- seller users, roles, and operational status
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Seller status determines whether listings, payouts, and fulfillment operations are allowed. KYC and team permissions are strong-integrity workflows.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `sellers`
+- `seller_profiles`
+- `seller_documents`
+- `seller_team_members`
+- `seller_status_history`
+- `outbox_events`
+
+### Published Events
+
+- `seller.application.submitted.v1`
+- `seller.approved.v1`
+- `seller.suspended.v1`
+- `seller.profile.updated.v1`
+
+---
+
+## 6.8 `catalog-service`
+
+### Responsibilities
+
+- category tree management
+- product and listing source of truth
+- listing lifecycle
+- product variations, attributes, and media metadata
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+- `JSONB` for flexible listing attributes
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Catalog is the source of truth for listings. Listing state, category integrity, seller ownership, moderation state, and product snapshots need consistency. Product attributes vary by category, so `JSONB` is useful for flexible attributes without giving up relational integrity.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `categories`
+- `products`
+- `listings`
+- `listing_variations`
+- `listing_media`
+- `listing_moderation_events`
+- `outbox_events`
+
+### Published Events
+
+- `catalog.listing.created.v1`
+- `catalog.listing.published.v1`
+- `catalog.listing.updated.v1`
+- `catalog.listing.blocked.v1`
+
+---
+
+## 6.9 `search-service`
+
+### Responsibilities
+
+- keyword search
+- category browse
+- filters, facets, sorting, and autocomplete
+- search index updates from domain events
+
+### Recommended Stack
+
+- `NestJS`
+- `OpenSearch`
+- official OpenSearch client
+
+### Chosen Database
+
+- `OpenSearch`
+
+### PACELC Rationale
+
+Search is a derived read model. If a partition happens, the system can serve slightly stale results while the source-of-truth services remain consistent.
+
+This service uses a `PA/EL` profile because low-latency reads, relevance, and faceted queries matter more than strict consistency.
+
+### Suggested Data Model
+
+- `listing_search_documents`
+- `autocomplete_terms`
+- `category_facets`
+- `search_synonyms`
+
+### Consumed Events
+
+- `catalog.listing.published.v1`
+- `catalog.listing.updated.v1`
+- `inventory.stock.adjusted.v1`
+- `review.rating.updated.v1`
+- `promotion.price.updated.v1`
+
+---
+
+## 6.10 `recommendation-service`
+
+### Responsibilities
+
+- personalized product feeds
+- related products
+- frequently bought together suggestions
+- merchandising feed materialization
+
+### Recommended Stack
+
+- `NestJS`
+- `Apache Cassandra`
+- Node.js driver for Cassandra
+
+### Chosen Database
+
+- `Apache Cassandra`
+
+### PACELC Rationale
+
+Recommendations are derived data and can be rebuilt from behavior, catalog, search, and order events. Stale recommendations are acceptable; slow or unavailable recommendations reduce user experience.
+
+This service uses a `PA/EL` profile.
+
+### Suggested Data Model
+
+- `recommendations_by_customer`
+- `related_products_by_listing`
+- `popular_products_by_category`
+- `feed_items_by_segment`
+
+### Consumed Events
+
+- `orders.order.created.v1`
+- `catalog.listing.published.v1`
+- `search.product_viewed.v1`
+- `analytics.behavior_aggregated.v1`
+
+---
+
+## 6.11 `cart-service`
+
+### Responsibilities
+
+- active customer carts
+- saved-for-later items
+- cart validation before checkout
+- abandoned cart signals
+
+### Recommended Stack
+
+- `NestJS`
+- `Redis`
+- official Redis client
+
+### Chosen Database
+
+- `Redis`
+
+### PACELC Rationale
+
+Active cart state is latency-sensitive and temporary. Cart contents can be revalidated against catalog, inventory, promotion, shipping, and seller services before order creation.
+
+This service uses a `PA/EL` profile. Redis is acceptable here because the cart is not the final system of record for orders, inventory, or payments.
+
+### Suggested Data Model
+
+- `cart:{customerId}`
+- `guest_cart:{sessionId}`
+- `saved_items:{customerId}`
+- `cart_validation_snapshots`
+
+### Published Events
+
+- `cart.abandoned.v1`
+- `cart.checkout_submitted.v1`
+
+---
+
+## 6.12 `promotion-service`
+
+### Responsibilities
+
+- coupons
+- campaign rules
+- discount eligibility
+- usage limits and promotion status
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Promotion usage must not exceed configured limits. Coupon reservations, campaign status, eligibility, and final price calculation need transactional consistency.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `campaigns`
+- `coupons`
+- `coupon_redemptions`
+- `promotion_rules`
+- `promotion_eligible_listings`
+- `outbox_events`
+
+### Published Events
+
+- `promotion.campaign.created.v1`
+- `promotion.coupon.redeemed.v1`
+- `promotion.price.updated.v1`
+
+---
+
+## 6.13 `payment-service`
+
+### Responsibilities
+
+- payment intents
+- payment captures and provider webhooks
+- refunds
+- fraud signals
+- reconciliation
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Payments are financial records. Authorization, capture, refund, reconciliation, and provider webhook deduplication must be consistent and auditable.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `payment_intents`
+- `payment_transactions`
+- `payment_methods`
+- `refunds`
+- `provider_webhooks`
+- `fraud_reviews`
+- `outbox_events`
+
+### Published Events
+
+- `payment.authorized.v1`
+- `payment.captured.v1`
+- `payment.failed.v1`
+- `payment.refunded.v1`
+
+---
+
+## 6.14 `return-service`
+
+### Responsibilities
+
+- return eligibility
+- returns and exchanges
+- disputes and claims
+- return inspection outcomes
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Returns affect orders, inventory, payments, and settlements. Eligibility decisions, inspections, disputes, and admin overrides must be consistent and auditable.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `return_cases`
+- `return_items`
+- `return_messages`
+- `return_inspections`
+- `dispute_cases`
+- `outbox_events`
+
+### Published Events
+
+- `return.requested.v1`
+- `return.approved.v1`
+- `return.rejected.v1`
+- `return.inspected.v1`
+
+---
+
+## 6.15 `review-service`
+
+### Responsibilities
+
+- product reviews
+- product ratings
+- seller ratings
+- moderation state for review content
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Verified-purchase validation, moderation state, rating aggregates, and seller reputation affect marketplace trust.
+
+This service uses a `PC/EC` profile. Aggregates can be cached or projected later, but the review source of truth should remain consistent.
+
+### Suggested Data Model
+
+- `product_reviews`
+- `seller_reviews`
+- `review_media`
+- `review_reports`
+- `rating_aggregates`
+- `outbox_events`
+
+### Published Events
+
+- `review.product.created.v1`
+- `review.product.moderated.v1`
+- `review.rating.updated.v1`
+
+---
+
+## 6.16 `question-service`
+
+### Responsibilities
+
+- public product questions
+- seller answers
+- Q&A moderation
+- customer notifications for answers
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Product Q&A needs ownership and moderation consistency. Incorrect answer ownership or moderation state can create trust and compliance issues.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `product_questions`
+- `product_answers`
+- `question_reports`
+- `outbox_events`
+
+### Published Events
+
+- `question.created.v1`
+- `question.answered.v1`
+- `question.moderated.v1`
+
+---
+
+## 6.17 `settlement-service`
+
+### Responsibilities
+
+- seller ledger
+- marketplace commissions and fees
+- payout scheduling
+- balance adjustments from refunds and disputes
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Settlement is a financial ledger. Payouts, holds, fees, chargebacks, and adjustments must be strongly consistent and auditable.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `seller_ledger_entries`
+- `seller_balances`
+- `payout_batches`
+- `payout_items`
+- `commission_rules`
+- `outbox_events`
+
+### Published Events
+
+- `settlement.balance_updated.v1`
+- `settlement.payout_scheduled.v1`
+- `settlement.payout_paid.v1`
+
+---
+
+## 6.18 `support-service`
+
+### Responsibilities
+
+- customer and seller support tickets
+- case assignment
+- support messages
+- escalations linked to orders, returns, listings, or accounts
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Support workflows need consistent ticket assignment, message history, status transitions, and audit trails.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `support_tickets`
+- `support_ticket_messages`
+- `support_assignments`
+- `support_escalations`
+- `outbox_events`
+
+### Published Events
+
+- `support.ticket.created.v1`
+- `support.ticket.assigned.v1`
+- `support.ticket.closed.v1`
+
+---
+
+## 6.19 `admin-service`
+
+### Responsibilities
+
+- backoffice policy configuration
+- operational overrides
+- moderation queues
+- admin audit logs
+
+### Recommended Stack
+
+- `NestJS`
+- `PostgreSQL`
+- `Prisma ORM`
+
+### Chosen Database
+
+- `PostgreSQL`
+
+### PACELC Rationale
+
+Admin actions can change seller status, listing visibility, return outcomes, and financial workflows. These changes require strong consistency and an explicit audit trail.
+
+This service uses a `PC/EC` profile.
+
+### Suggested Data Model
+
+- `admin_audit_logs`
+- `moderation_tasks`
+- `policy_configs`
+- `operational_overrides`
+- `outbox_events`
+
+### Published Events
+
+- `admin.policy.updated.v1`
+- `admin.override.applied.v1`
+- `admin.moderation.completed.v1`
+
+---
+
+## 6.20 `analytics-service`
+
+### Responsibilities
+
+- marketplace dashboards
+- seller reporting
+- operational metrics
+- event-based analytics and exports
+
+### Recommended Stack
+
+- `NestJS`
+- `ClickHouse`
+- official ClickHouse client
+
+### Chosen Database
+
+- `ClickHouse`
+
+### PACELC Rationale
+
+Analytics is derived from domain events. It needs fast ingestion, columnar aggregation, and dashboard queries more than strict consistency for every read.
+
+This service uses a `PA/EL` profile.
+
+### Suggested Data Model
+
+- `events_raw`
+- `sales_daily_by_seller`
+- `listing_performance_daily`
+- `marketplace_metrics_hourly`
+- `search_behavior_daily`
+
+### Consumed Events
+
+- all relevant domain events from Kafka
+
 ## 7. Pros And Cons Of The Selected Technologies
 
 ## 7.1 `NestJS`
@@ -571,6 +1230,54 @@ This service makes the practical application of PACELC clear:
 - significantly increases operational complexity
 - requires discipline with event versioning
 - without idempotency and outbox, the architecture becomes fragile
+
+## 7.8 `OpenSearch`
+
+### Pros
+
+- strong fit for keyword search, relevance, filters, sorting, and facets
+- good choice for denormalized listing search documents
+- supports rebuilding indexes from Kafka events
+- keeps search concerns out of the catalog source of truth
+
+### Cons
+
+- should not become the system of record
+- index freshness is eventually consistent
+- relevance tuning and index design add operational work
+- requires careful event replay and reindexing strategy
+
+## 7.9 `Redis`
+
+### Pros
+
+- very low latency
+- TTL support fits temporary active cart state
+- simple data structures work well for cart mutation
+- useful for cache, rate limiting, locks, and ephemeral workflow state
+
+### Cons
+
+- not a good system of record for strong business domains
+- persistence and failover require explicit operational care
+- cart state must be revalidated before checkout
+- should not own orders, payments, inventory, settlement, or identity records
+
+## 7.10 `ClickHouse`
+
+### Pros
+
+- excellent fit for high-volume analytics inserts
+- strong columnar aggregation performance
+- useful for dashboards, seller reports, and operational metrics
+- works well with event-driven analytics pipelines
+
+### Cons
+
+- not a transactional database
+- not a good source of truth for business workflows
+- schema and partition design require planning
+- data is usually derived and eventually consistent
 
 ## 8. Repository Structural Decisions
 
@@ -728,14 +1435,15 @@ Reason:
 - it weakens the strong-integrity narrative
 - it increases the risk of inconsistent modeling
 
-### `Redis` As The Main Database For Any Service
+### `Redis` As The System Of Record For Strong Domains
 
-Also not recommended as a system-of-record database in the first version.
+Not recommended for domains that require strong auditability, financial correctness, inventory correctness, or identity consistency.
 
 Reason:
 
-- Kafka already covers the streaming and eventing side
-- for this portfolio, Redis adds more value as cache or rate limiter than as a primary database
+- Redis is better for ephemeral state, cache, rate limiting, and low-latency active cart data
+- orders, payments, inventory, settlement, identity, and seller state need stronger transactional guarantees
+- cart state must be revalidated before checkout, so Redis does not become the final system of record
 
 ## 12. Recommended Roadmap
 
@@ -744,11 +1452,17 @@ Reason:
 - aggregator structure
 - local Kafka
 - `auth-service`
+- `customer-service`
+- `seller-service`
+- `catalog-service`
 - `orders-service`
 - `inventory-service`
 
 ## Phase 2
 
+- `cart-service`
+- `promotion-service`
+- `payment-service`
 - `shipping-service`
 - `notification-service`
 - observability
@@ -756,6 +1470,20 @@ Reason:
 
 ## Phase 3
 
+- `search-service`
+- `review-service`
+- `question-service`
+- `return-service`
+- `settlement-service`
+- `support-service`
+- `admin-service`
+
+## Phase 4
+
+- `recommendation-service`
+- `analytics-service`
+- reporting exports
+- advanced personalization
 - extraction of each service into its own repository
 - aggregator becomes the repository for Compose, documentation, and local automation
 
@@ -767,12 +1495,27 @@ If this were my portfolio project, I would follow exactly this combination:
 - messaging integration in NestJS services: `@nestjs/microservices`
 - broker: `Apache Kafka`
 - `auth-service`: `PostgreSQL + Prisma`
+- `customer-service`: `PostgreSQL + Prisma`
+- `seller-service`: `PostgreSQL + Prisma`
+- `catalog-service`: `PostgreSQL + Prisma + JSONB`
+- `search-service`: `OpenSearch + official client`
+- `recommendation-service`: `Cassandra + Node.js driver`
+- `cart-service`: `Redis + official client`
+- `promotion-service`: `PostgreSQL + Prisma`
 - `orders-service`: `PostgreSQL + Prisma`
+- `payment-service`: `PostgreSQL + Prisma`
 - `inventory-service`: `PostgreSQL + Prisma`
 - `shipping-service`: `MongoDB + official driver`
+- `return-service`: `PostgreSQL + Prisma`
+- `review-service`: `PostgreSQL + Prisma`
+- `question-service`: `PostgreSQL + Prisma`
 - `notification-service`: `Cassandra + Node.js driver`
+- `settlement-service`: `PostgreSQL + Prisma`
+- `support-service`: `PostgreSQL + Prisma`
+- `admin-service`: `PostgreSQL + Prisma`
+- `analytics-service`: `ClickHouse + official client`
 
-It shows enough breadth without turning into a technology fair.
+This uses PostgreSQL as the default consistency-first database, then introduces specialized databases only where PACELC and access patterns justify them.
 
 This point matters: a good portfolio is not impressive because of tool quantity. It is impressive because of coherent decisions.
 
