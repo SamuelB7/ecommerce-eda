@@ -89,6 +89,191 @@ services:
     volumes:
       - notification-cassandra-data:/var/lib/cassandra
 
+  customer-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-customer-postgres
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_DB: customer
+      POSTGRES_USER: customer
+      POSTGRES_PASSWORD: customer
+    volumes:
+      - customer-postgres-data:/var/lib/postgresql/data
+
+  seller-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-seller-postgres
+    ports:
+      - "5437:5432"
+    environment:
+      POSTGRES_DB: seller
+      POSTGRES_USER: seller
+      POSTGRES_PASSWORD: seller
+    volumes:
+      - seller-postgres-data:/var/lib/postgresql/data
+
+  catalog-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-catalog-postgres
+    ports:
+      - "5438:5432"
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+    volumes:
+      - catalog-postgres-data:/var/lib/postgresql/data
+
+  search-opensearch:
+    image: opensearchproject/opensearch:2.19.3
+    container_name: ecommerce-search-opensearch
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - search-opensearch-data:/usr/share/opensearch/data
+
+  recommendation-cassandra:
+    image: cassandra:5
+    container_name: ecommerce-recommendation-cassandra
+    ports:
+      - "9043:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: ecommerce-recommendation
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_RACK: rack1
+    volumes:
+      - recommendation-cassandra-data:/var/lib/cassandra
+
+  cart-redis:
+    image: redis:7-alpine
+    container_name: ecommerce-cart-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - cart-redis-data:/data
+
+  promotion-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-promotion-postgres
+    ports:
+      - "5439:5432"
+    environment:
+      POSTGRES_DB: promotion
+      POSTGRES_USER: promotion
+      POSTGRES_PASSWORD: promotion
+    volumes:
+      - promotion-postgres-data:/var/lib/postgresql/data
+
+  payment-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-payment-postgres
+    ports:
+      - "5440:5432"
+    environment:
+      POSTGRES_DB: payment
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment
+    volumes:
+      - payment-postgres-data:/var/lib/postgresql/data
+
+  return-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-return-postgres
+    ports:
+      - "5441:5432"
+    environment:
+      POSTGRES_DB: returns
+      POSTGRES_USER: returns
+      POSTGRES_PASSWORD: returns
+    volumes:
+      - return-postgres-data:/var/lib/postgresql/data
+
+  review-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-review-postgres
+    ports:
+      - "5442:5432"
+    environment:
+      POSTGRES_DB: review
+      POSTGRES_USER: review
+      POSTGRES_PASSWORD: review
+    volumes:
+      - review-postgres-data:/var/lib/postgresql/data
+
+  question-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-question-postgres
+    ports:
+      - "5443:5432"
+    environment:
+      POSTGRES_DB: question
+      POSTGRES_USER: question
+      POSTGRES_PASSWORD: question
+    volumes:
+      - question-postgres-data:/var/lib/postgresql/data
+
+  settlement-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-settlement-postgres
+    ports:
+      - "5444:5432"
+    environment:
+      POSTGRES_DB: settlement
+      POSTGRES_USER: settlement
+      POSTGRES_PASSWORD: settlement
+    volumes:
+      - settlement-postgres-data:/var/lib/postgresql/data
+
+  support-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-support-postgres
+    ports:
+      - "5445:5432"
+    environment:
+      POSTGRES_DB: support
+      POSTGRES_USER: support
+      POSTGRES_PASSWORD: support
+    volumes:
+      - support-postgres-data:/var/lib/postgresql/data
+
+  admin-postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-admin-postgres
+    ports:
+      - "5446:5432"
+    environment:
+      POSTGRES_DB: admin
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - admin-postgres-data:/var/lib/postgresql/data
+
+  analytics-clickhouse:
+    image: clickhouse/clickhouse-server:25.3-alpine
+    container_name: ecommerce-analytics-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: analytics
+      CLICKHOUSE_PASSWORD: analytics
+    volumes:
+      - analytics-clickhouse-data:/var/lib/clickhouse
+
   auth-service:
     build:
       context: ./auth-service
@@ -198,9 +383,340 @@ services:
       notification-cassandra:
         condition: service_started
 
+  customer-service:
+    build:
+      context: ./customer-service
+    container_name: ecommerce-customer-service
+    ports:
+      - "3006:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: customer-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: customer-service
+      KAFKA_CONSUMER_GROUP_ID: customer-service-demo-group
+      DEMO_TOPIC: customer.demo.event.v1
+      DATABASE_URL: postgresql://customer:customer@customer-postgres:5432/customer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      customer-postgres:
+        condition: service_started
+
+  seller-service:
+    build:
+      context: ./seller-service
+    container_name: ecommerce-seller-service
+    ports:
+      - "3007:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: seller-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: seller-service
+      KAFKA_CONSUMER_GROUP_ID: seller-service-demo-group
+      DEMO_TOPIC: seller.demo.event.v1
+      DATABASE_URL: postgresql://seller:seller@seller-postgres:5432/seller
+    depends_on:
+      kafka:
+        condition: service_healthy
+      seller-postgres:
+        condition: service_started
+
+  catalog-service:
+    build:
+      context: ./catalog-service
+    container_name: ecommerce-catalog-service
+    ports:
+      - "3008:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: catalog-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: catalog-service
+      KAFKA_CONSUMER_GROUP_ID: catalog-service-demo-group
+      DEMO_TOPIC: catalog.demo.event.v1
+      DATABASE_URL: postgresql://catalog:catalog@catalog-postgres:5432/catalog
+    depends_on:
+      kafka:
+        condition: service_healthy
+      catalog-postgres:
+        condition: service_started
+
+  search-service:
+    build:
+      context: ./search-service
+    container_name: ecommerce-search-service
+    ports:
+      - "3009:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: search-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: search-service
+      KAFKA_CONSUMER_GROUP_ID: search-service-demo-group
+      DEMO_TOPIC: search.demo.event.v1
+      OPENSEARCH_URL: http://search-opensearch:9200
+    depends_on:
+      kafka:
+        condition: service_healthy
+      search-opensearch:
+        condition: service_started
+
+  recommendation-service:
+    build:
+      context: ./recommendation-service
+    container_name: ecommerce-recommendation-service
+    ports:
+      - "3010:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: recommendation-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: recommendation-service
+      KAFKA_CONSUMER_GROUP_ID: recommendation-service-demo-group
+      DEMO_TOPIC: recommendation.demo.event.v1
+      CASSANDRA_CONTACT_POINTS: recommendation-cassandra:9042
+    depends_on:
+      kafka:
+        condition: service_healthy
+      recommendation-cassandra:
+        condition: service_started
+
+  cart-service:
+    build:
+      context: ./cart-service
+    container_name: ecommerce-cart-service
+    ports:
+      - "3011:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: cart-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: cart-service
+      KAFKA_CONSUMER_GROUP_ID: cart-service-demo-group
+      DEMO_TOPIC: cart.demo.event.v1
+      REDIS_URL: redis://cart-redis:6379
+    depends_on:
+      kafka:
+        condition: service_healthy
+      cart-redis:
+        condition: service_started
+
+  promotion-service:
+    build:
+      context: ./promotion-service
+    container_name: ecommerce-promotion-service
+    ports:
+      - "3012:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: promotion-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: promotion-service
+      KAFKA_CONSUMER_GROUP_ID: promotion-service-demo-group
+      DEMO_TOPIC: promotion.demo.event.v1
+      DATABASE_URL: postgresql://promotion:promotion@promotion-postgres:5432/promotion
+    depends_on:
+      kafka:
+        condition: service_healthy
+      promotion-postgres:
+        condition: service_started
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: ecommerce-payment-service
+    ports:
+      - "3013:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: payment-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: payment-service
+      KAFKA_CONSUMER_GROUP_ID: payment-service-demo-group
+      DEMO_TOPIC: payment.demo.event.v1
+      DATABASE_URL: postgresql://payment:payment@payment-postgres:5432/payment
+    depends_on:
+      kafka:
+        condition: service_healthy
+      payment-postgres:
+        condition: service_started
+
+  return-service:
+    build:
+      context: ./return-service
+    container_name: ecommerce-return-service
+    ports:
+      - "3014:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: return-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: return-service
+      KAFKA_CONSUMER_GROUP_ID: return-service-demo-group
+      DEMO_TOPIC: return.demo.event.v1
+      DATABASE_URL: postgresql://returns:returns@return-postgres:5432/returns
+    depends_on:
+      kafka:
+        condition: service_healthy
+      return-postgres:
+        condition: service_started
+
+  review-service:
+    build:
+      context: ./review-service
+    container_name: ecommerce-review-service
+    ports:
+      - "3015:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: review-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: review-service
+      KAFKA_CONSUMER_GROUP_ID: review-service-demo-group
+      DEMO_TOPIC: review.demo.event.v1
+      DATABASE_URL: postgresql://review:review@review-postgres:5432/review
+    depends_on:
+      kafka:
+        condition: service_healthy
+      review-postgres:
+        condition: service_started
+
+  question-service:
+    build:
+      context: ./question-service
+    container_name: ecommerce-question-service
+    ports:
+      - "3016:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: question-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: question-service
+      KAFKA_CONSUMER_GROUP_ID: question-service-demo-group
+      DEMO_TOPIC: question.demo.event.v1
+      DATABASE_URL: postgresql://question:question@question-postgres:5432/question
+    depends_on:
+      kafka:
+        condition: service_healthy
+      question-postgres:
+        condition: service_started
+
+  settlement-service:
+    build:
+      context: ./settlement-service
+    container_name: ecommerce-settlement-service
+    ports:
+      - "3017:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: settlement-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: settlement-service
+      KAFKA_CONSUMER_GROUP_ID: settlement-service-demo-group
+      DEMO_TOPIC: settlement.demo.event.v1
+      DATABASE_URL: postgresql://settlement:settlement@settlement-postgres:5432/settlement
+    depends_on:
+      kafka:
+        condition: service_healthy
+      settlement-postgres:
+        condition: service_started
+
+  support-service:
+    build:
+      context: ./support-service
+    container_name: ecommerce-support-service
+    ports:
+      - "3018:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: support-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: support-service
+      KAFKA_CONSUMER_GROUP_ID: support-service-demo-group
+      DEMO_TOPIC: support.demo.event.v1
+      DATABASE_URL: postgresql://support:support@support-postgres:5432/support
+    depends_on:
+      kafka:
+        condition: service_healthy
+      support-postgres:
+        condition: service_started
+
+  admin-service:
+    build:
+      context: ./admin-service
+    container_name: ecommerce-admin-service
+    ports:
+      - "3019:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: admin-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: admin-service
+      KAFKA_CONSUMER_GROUP_ID: admin-service-demo-group
+      DEMO_TOPIC: admin.demo.event.v1
+      DATABASE_URL: postgresql://admin:admin@admin-postgres:5432/admin
+    depends_on:
+      kafka:
+        condition: service_healthy
+      admin-postgres:
+        condition: service_started
+
+  analytics-service:
+    build:
+      context: ./analytics-service
+    container_name: ecommerce-analytics-service
+    ports:
+      - "3020:3000"
+    restart: on-failure
+    environment:
+      SERVICE_NAME: analytics-service
+      HTTP_PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: analytics-service
+      KAFKA_CONSUMER_GROUP_ID: analytics-service-demo-group
+      DEMO_TOPIC: analytics.demo.event.v1
+      CLICKHOUSE_URL: http://analytics-clickhouse:8123
+      CLICKHOUSE_DATABASE: analytics
+    depends_on:
+      kafka:
+        condition: service_healthy
+      analytics-clickhouse:
+        condition: service_started
+
 volumes:
   auth-postgres-data:
   orders-postgres-data:
   inventory-postgres-data:
   shipping-mongodb-data:
   notification-cassandra-data:
+  customer-postgres-data:
+  seller-postgres-data:
+  catalog-postgres-data:
+  search-opensearch-data:
+  recommendation-cassandra-data:
+  cart-redis-data:
+  promotion-postgres-data:
+  payment-postgres-data:
+  return-postgres-data:
+  review-postgres-data:
+  question-postgres-data:
+  settlement-postgres-data:
+  support-postgres-data:
+  admin-postgres-data:
+  analytics-clickhouse-data:
