@@ -17,3 +17,63 @@
 [submodule "notification-service"]
 	path = notification-service
 	url = https://github.com/SamuelB7/notification-service.git
+[submodule "admin-service"]
+	path = admin-service
+	url = https://github.com/SamuelB7/admin-service.git
+	branch = main
+[submodule "analytics-service"]
+	path = analytics-service
+	url = https://github.com/SamuelB7/analytics-service.git
+	branch = main
+[submodule "cart-service"]
+	path = cart-service
+	url = https://github.com/SamuelB7/cart-service.git
+	branch = main
+[submodule "catalog-service"]
+	path = catalog-service
+	url = https://github.com/SamuelB7/catalog-service.git
+	branch = main
+[submodule "customer-service"]
+	path = customer-service
+	url = https://github.com/SamuelB7/customer-service.git
+	branch = main
+[submodule "payment-service"]
+	path = payment-service
+	url = https://github.com/SamuelB7/payment-service.git
+	branch = main
+[submodule "promotion-service"]
+	path = promotion-service
+	url = https://github.com/SamuelB7/promotion-service.git
+	branch = main
+[submodule "question-service"]
+	path = question-service
+	url = https://github.com/SamuelB7/question-service.git
+	branch = main
+[submodule "recommendation-service"]
+	path = recommendation-service
+	url = https://github.com/SamuelB7/recommendation-service.git
+	branch = main
+[submodule "return-service"]
+	path = return-service
+	url = https://github.com/SamuelB7/return-service.git
+	branch = main
+[submodule "review-service"]
+	path = review-service
+	url = https://github.com/SamuelB7/review-service.git
+	branch = main
+[submodule "search-service"]
+	path = search-service
+	url = https://github.com/SamuelB7/search-service.git
+	branch = main
+[submodule "seller-service"]
+	path = seller-service
+	url = https://github.com/SamuelB7/seller-service.git
+	branch = main
+[submodule "settlement-service"]
+	path = settlement-service
+	url = https://github.com/SamuelB7/settlement-service.git
+	branch = main
+[submodule "support-service"]
+	path = support-service
+	url = https://github.com/SamuelB7/support-service.git
+	branch = main
