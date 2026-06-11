@@ -442,6 +442,7 @@ services:
       KAFKA_CONSUMER_GROUP_ID: catalog-service-demo-group
       DEMO_TOPIC: catalog.demo.event.v1
       DATABASE_URL: postgresql://catalog:catalog@catalog-postgres:5432/catalog
+      JWT_ACCESS_SECRET: dev-auth-access-secret
     depends_on:
       kafka:
         condition: service_healthy

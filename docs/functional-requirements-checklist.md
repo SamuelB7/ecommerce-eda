@@ -44,15 +44,15 @@ This checklist tracks implementation progress for `docs/functional-requirements.
 
 | Done | ID | Requirement | Primary Service | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | `FR-CATALOG-001` | Admins can manage category trees. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-002` | Sellers can create product listings. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-003` | Sellers can update listing content and attributes. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-004` | Sellers can manage product variations. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-005` | Sellers can upload and organize listing media. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-006` | Listings can be published, paused, archived, or blocked. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-007` | Admins can moderate product content. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-008` | Public APIs can expose product detail pages. | `catalog-service` | Pending. |
-| [ ] | `FR-CATALOG-009` | Sellers can bulk import and update listings. | `catalog-service` | Pending. |
+| [x] | `FR-CATALOG-001` | Admins can manage category trees. | `catalog-service` | Implemented with category create/list/update/reorder/deactivate APIs. |
+| [x] | `FR-CATALOG-002` | Sellers can create product listings. | `catalog-service` | Implemented with authenticated seller draft listing creation and initial variants. |
+| [x] | `FR-CATALOG-003` | Sellers can update listing content and attributes. | `catalog-service` | Implemented with seller-owned listing update APIs and JSONB attributes. |
+| [x] | `FR-CATALOG-004` | Sellers can manage product variations. | `catalog-service` | Implemented with variant add/update/delete APIs. |
+| [x] | `FR-CATALOG-005` | Sellers can upload and organize listing media. | `catalog-service` | Implemented with file storage abstraction, mock upload adapter, media metadata, primary media, and ordering APIs. |
+| [x] | `FR-CATALOG-006` | Listings can be published, paused, archived, or blocked. | `catalog-service` | Implemented with seller lifecycle APIs and admin moderation lifecycle changes. |
+| [x] | `FR-CATALOG-007` | Admins can moderate product content. | `catalog-service` | Implemented with approve/reject/block/request-changes moderation API and moderation history. |
+| [x] | `FR-CATALOG-008` | Public APIs can expose product detail pages. | `catalog-service` | Implemented with public published listing detail API and placeholder downstream summaries. |
+| [x] | `FR-CATALOG-009` | Sellers can bulk import and update listings. | `catalog-service` | Implemented with synchronous JSON bulk import jobs and item validation results. |
 
 ## 5.5 Search, Browse, And Discovery
 
