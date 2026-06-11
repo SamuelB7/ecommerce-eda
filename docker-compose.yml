@@ -398,6 +398,7 @@ services:
       KAFKA_CONSUMER_GROUP_ID: customer-service-demo-group
       DEMO_TOPIC: customer.demo.event.v1
       DATABASE_URL: postgresql://customer:customer@customer-postgres:5432/customer
+      JWT_ACCESS_SECRET: dev-auth-access-secret
     depends_on:
       kafka:
         condition: service_healthy
