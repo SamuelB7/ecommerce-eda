@@ -420,6 +420,7 @@ services:
       KAFKA_CONSUMER_GROUP_ID: seller-service-demo-group
       DEMO_TOPIC: seller.demo.event.v1
       DATABASE_URL: postgresql://seller:seller@seller-postgres:5432/seller
+      JWT_ACCESS_SECRET: dev-auth-access-secret
     depends_on:
       kafka:
         condition: service_healthy

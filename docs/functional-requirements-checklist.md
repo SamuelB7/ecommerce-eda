@@ -31,14 +31,14 @@ This checklist tracks implementation progress for `docs/functional-requirements.
 
 | Done | ID | Requirement | Primary Service | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | `FR-SELLER-001` | Users can apply to become sellers. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-002` | Sellers can submit KYC and business documents. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-003` | Sellers can manage public store profile data. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-004` | Sellers can configure payout bank account data. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-005` | Sellers can manage team members and permissions. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-006` | Sellers can configure handling time and shipping origin. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-007` | Admins can approve, reject, suspend, or reactivate sellers. | `seller-service` | Pending. |
-| [ ] | `FR-SELLER-008` | Sellers can view account health and policy warnings. | `seller-service` | Pending. |
+| [x] | `FR-SELLER-001` | Users can apply to become sellers. | `seller-service` | Implemented with seller application APIs and onboarding status. |
+| [x] | `FR-SELLER-002` | Sellers can submit KYC and business documents. | `seller-service` | Implemented with KYC document metadata submission and review status. |
+| [x] | `FR-SELLER-003` | Sellers can manage public store profile data. | `seller-service` | Implemented with store profile read/update APIs. |
+| [x] | `FR-SELLER-004` | Sellers can configure payout bank account data. | `seller-service` | Implemented with payout account read/update APIs. |
+| [x] | `FR-SELLER-005` | Sellers can manage team members and permissions. | `seller-service` | Implemented with team member invite/update/remove/list APIs. |
+| [x] | `FR-SELLER-006` | Sellers can configure handling time and shipping origin. | `seller-service` | Implemented with fulfillment settings read/update APIs. |
+| [x] | `FR-SELLER-007` | Admins can approve, reject, suspend, or reactivate sellers. | `seller-service` | Implemented with admin status change API and status history. |
+| [x] | `FR-SELLER-008` | Sellers can view account health and policy warnings. | `seller-service` | Implemented with seller account health API and policy warnings read model. |
 
 ## 5.4 Product Catalog And Listings
 
