@@ -19,13 +19,13 @@ This checklist tracks implementation progress for `docs/functional-requirements.
 
 | Done | ID | Requirement | Primary Service | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | `FR-CUSTOMER-001` | Customers can manage profile data. | `customer-service` | Pending. |
-| [ ] | `FR-CUSTOMER-002` | Customers can manage multiple delivery addresses. | `customer-service` | Pending. |
-| [ ] | `FR-CUSTOMER-003` | Customers can manage communication preferences. | `customer-service` | Pending. |
-| [ ] | `FR-CUSTOMER-004` | Customers can save products to wishlists. | `customer-service` | Pending. |
-| [ ] | `FR-CUSTOMER-005` | Customers can follow sellers and stores. | `customer-service` | Pending. |
-| [ ] | `FR-CUSTOMER-006` | Customers can view their purchase history. | `customer-service` | Pending. |
-| [ ] | `FR-CUSTOMER-007` | Customers can request privacy data export. | `customer-service` | Pending. |
+| [x] | `FR-CUSTOMER-001` | Customers can manage profile data. | `customer-service` | Implemented with authenticated profile read/update APIs. |
+| [x] | `FR-CUSTOMER-002` | Customers can manage multiple delivery addresses. | `customer-service` | Implemented with address CRUD and default address selection. |
+| [x] | `FR-CUSTOMER-003` | Customers can manage communication preferences. | `customer-service` | Implemented with preferences read/update APIs. |
+| [x] | `FR-CUSTOMER-004` | Customers can save products to wishlists. | `customer-service` | Implemented with wishlist item add/remove/list and share token APIs. |
+| [x] | `FR-CUSTOMER-005` | Customers can follow sellers and stores. | `customer-service` | Implemented with followed seller add/remove/list APIs. |
+| [x] | `FR-CUSTOMER-006` | Customers can view their purchase history. | `customer-service` | Implemented with order reference read model and paged listing API. |
+| [x] | `FR-CUSTOMER-007` | Customers can request privacy data export. | `customer-service` | Implemented with privacy export request and status APIs. |
 
 ## 5.3 Seller Onboarding And Store Management
 
