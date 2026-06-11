@@ -58,14 +58,14 @@ This checklist tracks implementation progress for `docs/functional-requirements.
 
 | Done | ID | Requirement | Primary Service | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | `FR-SEARCH-001` | Customers can search products by keyword. | `search-service` | Pending. |
-| [ ] | `FR-SEARCH-002` | Customers can browse by category. | `search-service` | Pending. |
-| [ ] | `FR-SEARCH-003` | Customers can filter by attributes, price, seller, rating, shipping, and availability. | `search-service` | Pending. |
-| [ ] | `FR-SEARCH-004` | Customers can sort search results. | `search-service` | Pending. |
-| [ ] | `FR-SEARCH-005` | Customers can use autocomplete and search suggestions. | `search-service` | Pending. |
-| [ ] | `FR-SEARCH-006` | Search index updates when listings, stock, price, or ratings change. | `search-service` | Pending. |
-| [ ] | `FR-REC-001` | Customers can receive personalized recommendations. | `recommendation-service` | Pending. |
-| [ ] | `FR-REC-002` | Product detail APIs can expose related products. | `recommendation-service` | Pending. |
+| [x] | `FR-SEARCH-001` | Customers can search products by keyword. | `search-service` | Implemented with OpenSearch keyword query over listing documents. |
+| [x] | `FR-SEARCH-002` | Customers can browse by category. | `search-service` | Implemented with category browse endpoint and category filter. |
+| [x] | `FR-SEARCH-003` | Customers can filter by attributes, price, seller, rating, shipping, and availability. | `search-service` | Implemented with OpenSearch filters and facets for derived listing fields. |
+| [x] | `FR-SEARCH-004` | Customers can sort search results. | `search-service` | Implemented with relevance, price, rating, newest, and best-seller sort options. |
+| [x] | `FR-SEARCH-005` | Customers can use autocomplete and search suggestions. | `search-service` | Implemented with autocomplete and suggestions index populated from listing documents. |
+| [x] | `FR-SEARCH-006` | Search index updates when listings, stock, price, or ratings change. | `search-service` | Implemented with internal full-document upsert and Kafka partial update consumers. |
+| [x] | `FR-REC-001` | Customers can receive personalized recommendations. | `recommendation-service` | Implemented with Cassandra customer feeds updated from listing, order, view, and analytics events. |
+| [x] | `FR-REC-002` | Product detail APIs can expose related products. | `recommendation-service` | Implemented with related-products and popular-category read APIs backed by Cassandra. |
 
 ## 5.6 Pricing, Promotions, And Coupons
 
